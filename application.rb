@@ -45,7 +45,12 @@ class Application
 
   def start_prompt
     while input = Readline.readline('')
-      @client.send(input) unless input.empty?
+      if input.start_with? '/'
+        command = input.delete_prefix('/')
+        puts command
+      else
+        @client.send_packet(:chat, message: input) unless input.empty?
+      end
     end
   end
 end

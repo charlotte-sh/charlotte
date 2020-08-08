@@ -1,8 +1,10 @@
 require 'socket'
+require 'json'
 require 'etc'
 require 'readline'
 require 'tempfile'
 require 'open3'
 
+require './packet'
 require './client'
 require './application'

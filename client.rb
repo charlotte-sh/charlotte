@@ -7,27 +7,31 @@ class Client
     listen
   end
 
-  def send(message)
-    begin
-      @socket.puts message
-    rescue IOError => e
-      puts e.message
-      @socket.close
-    end
+  def send_packet(channel, **data)
+    @socket.puts Packet.new(channel, **data)
   end
 
   private
 
   def handshake
-    @socket.puts Etc.getpwuid(Process.uid).name
+    send_packet :handshake, username: Etc.getpwuid(Process.uid).name
   end
 
   def listen
     begin
       Thread.new do
         loop do
-          response = @socket.gets.chomp
-          puts "#{response}"
+          packet = Packet.parse(@socket.gets.chomp)
+
+          case packet.channel
+          when 'handshake'
+            puts "Workspace: #{packet.data.dig(:workspace)}"
+            puts "Account:   #{packet.data.dig(:username)}"
+            puts "Online:    #{packet.data.dig(:machines).join(', ')}"
+            puts
+          when 'chat'
+            puts "#{packet.data.dig(:username)}: #{packet.data.dig(:message)}"
+          end
         end
       end
     rescue IOError => e
