@@ -1,7 +1,4 @@
-require 'socket'
-require 'etc'
-require 'readline'
-require './client'
+require './requirements'
 
 puts
 puts '   ________               __      __  __     v0.0 '
@@ -17,6 +14,8 @@ client = Client.new(hostname)
 stty_save = `stty -g`.chomp
 trap('INT') { system('stty', stty_save); exit }
 
+Tmate.start
+
 while input = Readline.readline('')
-  client.send(input)
+  client.send(input) unless input.empty?
 end
