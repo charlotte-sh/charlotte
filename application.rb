@@ -23,7 +23,7 @@ class Application
   end
 
   def start_client
-    hostname = 'localhost'
+    hostname = ARGV.first
     @client = Client.new(hostname)
   end
 
