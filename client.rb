@@ -1,42 +1,30 @@
 class Client
   PORT = 1654
 
-  def initialize(hostname)
-    @socket = TCPSocket.open(hostname, PORT)
-    handshake
-    listen
-  end
+  attr_reader :connection
 
-  def send_packet(channel, **data)
-    @socket.puts Packet.new(channel, **data)
+  def initialize(hostname)
+    @hostname = hostname
+    connect
   end
 
   private
 
-  def handshake
-    send_packet :handshake, username: Etc.getpwuid(Process.uid).name
+  def connect
+    socket = TCPSocket.open(@hostname, PORT)
+    @connection = Connection.new socket,
+      on_request: -> (message) { on_request(message) },
+      on_close: -> (connection) { on_close(connection) }
   end
 
-  def listen
-    begin
-      Thread.new do
-        loop do
-          packet = Packet.parse(@socket.gets.chomp)
-
-          case packet.channel
-          when 'handshake'
-            puts "Workspace: #{packet.data.dig(:workspace)}"
-            puts "Account:   #{packet.data.dig(:username)}"
-            puts "Online:    #{packet.data.dig(:machines).join(', ')}"
-            puts
-          when 'chat'
-            puts "#{packet.data.dig(:username)}: #{packet.data.dig(:message)}"
-          end
-        end
-      end
-    rescue IOError => e
-      puts e.message
-      @socket.close
+  def on_request(request)
+    case request.channel
+    when :chat
+      puts "#{request.data.dig(:username)}: #{request.data.dig(:message)}"
     end
+  end
+
+  def on_close(connection)
+    puts 'Connection closed'
   end
 end
