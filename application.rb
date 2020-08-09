@@ -1,8 +1,4 @@
 class Application
-  def initialize
-    @client = nil
-  end
-
   def run
     display_banner
     start_client
@@ -24,23 +20,21 @@ class Application
   end
 
   def start_client
-    hostname = ARGV.first
-    @client = Client.new(hostname)
+    @username, @hostname = ARGV.first.split('@')
+    @client = Client.new(@hostname)
   end
 
   def authenticate
-    username = Etc.getpwuid(Process.uid).name
-
-    @client.connection.request :authentication, username: username do |response|
-      username = response.data.dig(:username)
+    @client.connection.request :authentication, username: @username do |response|
       workspace = response.data.dig(:workspace)
-      @prompt = "#{username}@#{workspace}"
+      puts "#{@username}@#{workspace} $"
+      puts
     end
   end
 
   def start_tmate
-    webhook_url = 'https://webhook.site/2811998a-c589-4e1c-8f00-895f43257d80'
-    webhook_id = Etc.getpwuid(Process.uid).name
+    webhook_url = "https://#{@hostname}:1913"
+    webhook_id = @username
 
     tmate_config = Tempfile.new('tmate')
     tmate_config.puts <<~CONFIG
@@ -55,9 +49,21 @@ class Application
   end
 
   def start_prompt
-    while input = Readline.readline("#{@prompt} $ ")
+    while input = Readline.readline('', true)
       if input.start_with? '/'
-        command = input.delete_prefix('/')
+        params = input.delete_prefix('/').split
+        command = params.shift
+
+        case command
+        when 'machines'
+          @client.connection.request(:machines) do |response|
+            machines = response.data.dig(:machines)
+            puts machines.join(', ')
+          end
+
+        when 'connect'
+          @client.connection.request(:shell, username: params.first)
+        end
       else
         @client.connection.request(:chat, message: input) unless input.empty?
       end

